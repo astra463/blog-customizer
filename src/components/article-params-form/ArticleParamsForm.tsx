@@ -1,7 +1,7 @@
 import { ArrowButton } from 'components/arrow-button';
 import { Button } from 'components/button';
 import { Select } from 'components/select';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import styles from './ArticleParamsForm.module.scss';
 import {
@@ -17,6 +17,7 @@ import { Spacing } from '../spacing/Spacing';
 import { RadioGroup } from '../radio-group/RadioGroup';
 import { Separator } from '../separator/Separator';
 import { Text } from '../text/Text';
+import { useOutsideClickClose } from '../select/hooks/useOutsideClickClose';
 
 interface ArticleParamsFormProps {
 	selectedFontFamily: OptionType;
@@ -46,6 +47,9 @@ export const ArticleParamsForm = ({
 	// Состояние формы
 	const [formVisible, setFormVisible] = useState(false);
 
+	// Получаем объект со свойством current нашей формы, чтобы реализовать клик вне её области
+	const formRef = useRef<HTMLDivElement>(null);
+
 	// Хранение локальных значений полей формы специально реализовано здесь, так как при их изменении не должно происходить их применение
 	// Дефолтное значение состояния приходит в качестве пропсов из родителя.
 	const [localFontFamily, setLocalFontFamily] = useState(selectedFontFamily);
@@ -58,6 +62,13 @@ export const ArticleParamsForm = ({
 		useState(selectedContentWidth);
 
 	const toggleFormVisibility = () => setFormVisible(!formVisible);
+
+	// Кастомный хук для отслеживания клика вне области rootRef (туда мы передали нашу форму)
+	useOutsideClickClose({
+		isOpen: formVisible,
+		onChange: setFormVisible,
+		rootRef: formRef,
+	});
 
 	// Применение изменений. Локальные значения передаются вверх, используя методы set из пропсов.
 	const applyChanges = () => {
@@ -79,7 +90,23 @@ export const ArticleParamsForm = ({
 
 	return (
 		<>
-			<ArrowButton onClick={toggleFormVisibility} isOpen={formVisible} />
+			{/*
+
+		Внутри ArrowButton реализована проверка, открыта ли сейчас форма.
+		Это нужно, чтобы форма открывалась/закрывалась в зависимости от того, открыта ли сейчас форма
+
+		*/}
+			<ArrowButton
+				onClick={(e) => {
+					if (!formVisible) {
+						toggleFormVisibility();
+					}
+					else toggleFormVisibility();
+					e.stopPropagation();
+				}
+			}
+				isOpen={formVisible}
+			/>
 			{formVisible && (
 				<aside
 					className={clsx(
