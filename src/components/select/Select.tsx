@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { memo, useState, useRef } from 'react';
 import type { MouseEventHandler } from 'react';
 import clsx from 'clsx';
 import { OptionType } from 'src/constants/articleProps';
@@ -20,7 +20,7 @@ type SelectProps = {
 	title?: string;
 };
 
-export const Select = (props: SelectProps) => {
+export const Select = memo((props: SelectProps) => {
 	const { options, placeholder, selected, onChange, onClose, title } = props;
 	const [isOpen, setIsOpen] = useState<boolean>(false);
 	const rootRef = useRef<HTMLDivElement>(null);
@@ -101,4 +101,4 @@ export const Select = (props: SelectProps) => {
 			</div>
 		</div>
 	);
-};
+});
