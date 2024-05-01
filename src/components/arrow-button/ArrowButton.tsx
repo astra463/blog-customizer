@@ -1,20 +1,25 @@
 import arrow from 'src/images/arrow.svg';
 import styles from './ArrowButton.module.scss';
 import clsx from 'clsx';
-import { MouseEventHandler } from 'react';
 
 /** Функция для обработки открытия/закрытия формы */
-export type OnClick = (event: MouseEvent) => void;
+export type OnClick = () => void;
 
 interface ArrowButtonProps {
-	onClick: MouseEventHandler<HTMLDivElement>;
+	containerRef: React.RefObject<HTMLDivElement>;
+	onClick: () => void;
 	isOpen: boolean;
 }
 
-export const ArrowButton = ({ onClick, isOpen }: ArrowButtonProps) => {
+export const ArrowButton = ({
+	containerRef,
+	onClick,
+	isOpen,
+}: ArrowButtonProps) => {
 	return (
 		/* Не забываем указывать role и aria-label атрибуты для интерактивных элементов */
 		<div
+			ref={containerRef}
 			role='button'
 			aria-label='Открыть/Закрыть форму параметров статьи'
 			tabIndex={0}

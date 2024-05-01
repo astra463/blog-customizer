@@ -17,95 +17,89 @@ import { Spacing } from '../spacing/Spacing';
 import { RadioGroup } from '../radio-group/RadioGroup';
 import { Separator } from '../separator/Separator';
 import { Text } from '../text/Text';
-import { useOutsideClickClose } from '../select/hooks/useOutsideClickClose';
+
+type FormState = {
+	fontFamily: OptionType;
+	fontSize: OptionType;
+	fontColor: OptionType;
+	backgroundColor: OptionType;
+	contentWidth: OptionType;
+};
 
 interface ArticleParamsFormProps {
-	selectedFontFamily: OptionType;
-	setSelectedFontFamily: (selectedFontFamily: OptionType) => void;
-	selectedFontSize: OptionType;
-	setSelectedFontSize: (selectedFontSize: OptionType) => void;
-	selectedFontColor: OptionType;
-	setSelectedFontColor: (selectedFontColor: OptionType) => void;
-	selectedBackgroundColor: OptionType;
-	setSelectedBackgroundColor: (selectedBackgroundColor: OptionType) => void;
-	selectedContentWidth: OptionType;
-	setSelectedContentWidth: (selectedContentWidth: OptionType) => void;
+	formState: FormState;
+	setFormState: React.Dispatch<React.SetStateAction<FormState>>;
 }
 
 export const ArticleParamsForm = ({
-	selectedFontFamily,
-	setSelectedFontFamily,
-	selectedFontSize,
-	setSelectedFontSize,
-	selectedFontColor,
-	setSelectedFontColor,
-	selectedBackgroundColor,
-	setSelectedBackgroundColor,
-	selectedContentWidth,
-	setSelectedContentWidth,
+	formState,
+	setFormState,
 }: ArticleParamsFormProps) => {
-	// Состояние формы
 	const [formVisible, setFormVisible] = useState(false);
 
-	// Получаем объект со свойством current нашей формы, чтобы реализовать клик вне её области
-	const formRef = useRef<HTMLDivElement>(null);
-
-	// Хранение локальных значений полей формы специально реализовано здесь, так как при их изменении не должно происходить их применение
-	// Дефолтное значение состояния приходит в качестве пропсов из родителя.
-	const [localFontFamily, setLocalFontFamily] = useState(selectedFontFamily);
-	const [localFontSize, setLocalFontSize] = useState(selectedFontSize);
-	const [localFontColor, setLocalFontColor] = useState(selectedFontColor);
+	const [localFontFamily, setLocalFontFamily] = useState(formState.fontFamily);
+	const [localFontSize, setLocalFontSize] = useState(formState.fontSize);
+	const [localFontColor, setLocalFontColor] = useState(formState.fontColor);
 	const [localBackgroundColor, setLocalBackgroundColor] = useState(
-		selectedBackgroundColor
+		formState.backgroundColor
 	);
-	const [localContentWidth, setLocalContentWidth] =
-		useState(selectedContentWidth);
+	const [localContentWidth, setLocalContentWidth] = useState(
+		formState.contentWidth
+	);
 
-	const toggleFormVisibility = () => setFormVisible(!formVisible);
-
-	// Кастомный хук для отслеживания клика вне области rootRef (туда мы передали нашу форму)
-	useOutsideClickClose({
-		isOpen: formVisible,
-		onChange: setFormVisible,
-		rootRef: formRef,
-	});
-
-	// Применение изменений. Локальные значения передаются вверх, используя методы set из пропсов.
-	const applyChanges = () => {
-		setSelectedFontFamily(localFontFamily);
-		setSelectedFontSize(localFontSize);
-		setSelectedFontColor(localFontColor);
-		setSelectedBackgroundColor(localBackgroundColor);
-		setSelectedContentWidth(localContentWidth);
+	const toggleFormVisibility = () => {
+		setFormVisible((prevFormVisible) => !prevFormVisible);
+		console.log('toggle');
 	};
 
-	// Сброс изменений. Передаем дефолтные значения
+	const formRef = useRef<HTMLFormElement>(null);
+	const arrowButtonRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		function handleClick(event: MouseEvent) {
+			if (
+				formRef.current &&
+				!formRef.current.contains(event.target as Node) &&
+				arrowButtonRef.current &&
+				!arrowButtonRef.current.contains(event.target as Node)
+			) {
+				toggleFormVisibility();
+			}
+		}
+
+		document.addEventListener('mousedown', handleClick);
+
+		return () => {
+			document.removeEventListener('mousedown', handleClick);
+		};
+	}, [formRef.current, arrowButtonRef.current]);
+
+	const applyChanges = (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		setFormState({
+			fontFamily: localFontFamily,
+			fontSize: localFontSize,
+			fontColor: localFontColor,
+			backgroundColor: localBackgroundColor,
+			contentWidth: localContentWidth,
+		});
+	};
+
 	const resetChanges = () => {
-		setSelectedFontFamily(defaultArticleState.fontFamilyOption);
-		setSelectedFontSize(defaultArticleState.fontSizeOption);
-		setSelectedFontColor(defaultArticleState.fontColor);
-		setSelectedBackgroundColor(defaultArticleState.backgroundColor);
-		setSelectedContentWidth(defaultArticleState.contentWidth);
+		setFormState(defaultArticleState);
+		setLocalFontFamily(defaultArticleState.fontFamily);
+		setLocalFontSize(defaultArticleState.fontSize);
+		setLocalFontColor(defaultArticleState.fontColor);
+		setLocalBackgroundColor(defaultArticleState.backgroundColor);
+		setLocalContentWidth(defaultArticleState.contentWidth);
 	};
 
 	return (
 		<>
-			{/*
-
-		Внутри ArrowButton реализована проверка, открыта ли сейчас форма.
-		Это нужно, чтобы форма открывалась/закрывалась в зависимости от того, открыта ли сейчас форма
-
-		*/}
 			<ArrowButton
-				onClick={(e) => {
-					if (!formVisible) {
-						toggleFormVisibility();
-					}
-					else toggleFormVisibility();
-					e.stopPropagation();
-				}
-			}
+				onClick={toggleFormVisibility}
 				isOpen={formVisible}
+				containerRef={arrowButtonRef}
 			/>
 			{formVisible && (
 				<aside
@@ -113,18 +107,11 @@ export const ArticleParamsForm = ({
 						styles.container,
 						formVisible && styles.container_open
 					)}>
-					<form className={styles.form}>
-						<Text as='h2' size={31} weight={800} uppercase dynamicLite>
+					<form className={styles.form} ref={formRef} onSubmit={applyChanges}>
+						<Text as='h2' size={31} weight={800} uppercase>
 							Задайте параметры
 						</Text>
 						<Spacing />
-						{/*
-
-						В качестве пропса selected у компонента Select здесь локальное значение.
-						Мы передадим его вверх при нажатии на кнопку "Применить"
-
-						*/}
-
 						<Select
 							selected={localFontFamily}
 							options={fontFamilyOptions}
@@ -164,7 +151,7 @@ export const ArticleParamsForm = ({
 						/>
 						<div className={styles.bottomContainer}>
 							<Button title='Сбросить' type='button' onClick={resetChanges} />
-							<Button title='Применить' type='button' onClick={applyChanges} />
+							<Button title='Применить' type='submit' />
 						</div>
 					</form>
 				</aside>
